@@ -68,6 +68,10 @@ export const getUserConversations = query({
         isOnline: boolean;
         typing?: number;
       };
+      lastMessage: {
+        content: string;
+        createdAt: number;
+      } | null;
       lastMessageId?: string;
       createdAt: number;
     }> = [];
@@ -87,6 +91,15 @@ export const getUserConversations = query({
       const otherUser = await ctx.db.get(otherMember.userId);
       if (!otherUser) continue;
 
+      // Fetch latest message for this conversation.
+      const lastMessageDoc = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation_createdAt", (q) =>
+          q.eq("conversationId", mem.conversationId)
+        )
+        .order("desc")
+        .first();
+
       result.push({
         _id: conv._id,
         otherUser: {
@@ -97,12 +110,23 @@ export const getUserConversations = query({
           isOnline: otherUser.isOnline,
           typing: otherUser.typing,
         },
+        lastMessage:
+          lastMessageDoc != null
+            ? {
+                content: lastMessageDoc.content,
+                createdAt: lastMessageDoc.createdAt,
+              }
+            : null,
         lastMessageId: conv.lastMessageId,
         createdAt: conv.createdAt ?? 0,
       });
     }
 
-    result.sort((a, b) => b.createdAt - a.createdAt);
+    result.sort((a, b) => {
+      const aTime = a.lastMessage?.createdAt ?? a.createdAt;
+      const bTime = b.lastMessage?.createdAt ?? b.createdAt;
+      return bTime - aTime;
+    });
     return result;
   },
 });

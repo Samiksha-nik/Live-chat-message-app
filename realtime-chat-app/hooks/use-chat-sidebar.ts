@@ -1,9 +1,10 @@
-"use client";
+ "use client";
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { formatMessageTime } from "@/lib/format-time";
 
 export type SidebarItem =
   | {
@@ -50,7 +51,11 @@ export function useChatSidebar() {
         userId: c.otherUser._id,
         name: c.otherUser.name,
         avatar: c.otherUser.imageUrl,
-        lastMessage: "No messages yet",
+        lastMessage: c.lastMessage
+          ? `${c.lastMessage.content} · ${formatMessageTime(
+              c.lastMessage.createdAt
+            )}`
+          : "No messages yet",
         unread: 0,
       }));
 
