@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Sidebar } from "./Sidebar";
@@ -110,7 +110,7 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
               showBackButton={true}
             />
 
-            <div className="flex flex-1 flex-col overflow-hidden">
+<div className="flex flex-1 min-h-0 flex-col overflow-hidden">
               <MessageList
                 messages={messages ?? []}
                 currentUserId={currentConvexUser?._id ?? null}
@@ -155,6 +155,11 @@ type MessageListProps = {
 };
 
 function MessageList({ messages, currentUserId, typingLabel }: MessageListProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const wasNearBottomRef = useRef(true);
+
   // Trigger a re-render every 60 seconds so relative timestamps stay fresh.
   useEffect(() => {
     const id = setInterval(() => {
@@ -166,21 +171,64 @@ function MessageList({ messages, currentUserId, typingLabel }: MessageListProps)
 
   const [tick, setTick] = useState(0);
 
+  // Auto-scroll when new messages arrive only if user was already near bottom.
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    if (wasNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setShowScrollButton(false);
+    } else if (messages.length > 0) {
+      setShowScrollButton(true);
+    }
+  }, [messages]);
+
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6">
-      {typingLabel && (
-        <p className="mb-2 text-xs text-muted-foreground">{typingLabel}</p>
-      )}
-      <div className="flex flex-col gap-4">
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg._id}
-            content={msg.content}
-            createdAt={msg.createdAt}
-            isSender={msg.senderId === currentUserId}
-          />
-        ))}
+    <div className="relative flex-1 min-h-0">
+      <div
+        ref={containerRef}
+        onScroll={() => {
+          if (!containerRef.current) return;
+
+          const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+          const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+          wasNearBottomRef.current = nearBottom;
+
+          if (nearBottom) {
+            setShowScrollButton(false);
+          }
+        }}
+        className="h-full overflow-y-auto px-6 py-6"
+      >
+        {typingLabel && (
+          <p className="mb-2 text-xs text-muted-foreground">{typingLabel}</p>
+        )}
+        <div className="flex flex-col gap-4">
+          {messages.map((msg) => (
+            <MessageBubble
+              key={msg._id}
+              content={msg.content}
+              createdAt={msg.createdAt}
+              isSender={msg.senderId === currentUserId}
+            />
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
+
+      {showScrollButton && (
+        <button
+          type="button"
+          onClick={() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            setShowScrollButton(false);
+          }}
+          className="absolute bottom-20 right-6 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-lg shadow-black/20 transition hover:bg-primary/90"
+        >
+          ↓ New messages
+        </button>
+      )}
     </div>
   );
 }
