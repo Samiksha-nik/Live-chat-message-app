@@ -1,69 +1,58 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
-import { useCallback, useEffect, useRef } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
 
-const OFFLINE_DEBOUNCE_MS = 2000;
+const HEARTBEAT_MS = 30_000;
 
 /**
- * Syncs user to Convex and manages presence (isOnline, lastSeen).
- * - Mount: syncUser (create/update)
- * - Tab visible: setOnline
- * - Tab hidden: debounced setOffline
- * - beforeunload: setOffline (best-effort)
+ * Syncs Clerk user to Convex and maintains real-time presence.
+ *
+ * - On mount: syncUser and immediately call updatePresence(currentUserId)
+ * - Heartbeat: call updatePresence every 30s
+ * - beforeunload: final updatePresence best-effort
+ *
+ * Presence is stored in the `presence` table; online/offline is derived
+ * in the UI based on lastSeen.
  */
 export function usePresence() {
   const { isLoaded, isSignedIn } = useUser();
+  const convexUser = useQuery(api.users.getCurrentUser);
   const syncUser = useMutation(api.users.syncUser);
-  const setOnline = useMutation(api.users.setOnline);
-  const setOffline = useMutation(api.users.setOffline);
-  const offlineTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleVisible = useCallback(() => {
-    if (offlineTimeoutRef.current) {
-      clearTimeout(offlineTimeoutRef.current);
-      offlineTimeoutRef.current = null;
-    }
-    setOnline();
-  }, [setOnline]);
-
-  const handleHidden = useCallback(() => {
-    if (offlineTimeoutRef.current) return;
-    offlineTimeoutRef.current = setTimeout(() => {
-      offlineTimeoutRef.current = null;
-      setOffline();
-    }, OFFLINE_DEBOUNCE_MS);
-  }, [setOffline]);
-
-  const handleBeforeUnload = useCallback(() => {
-    setOffline();
-  }, [setOffline]);
+  const updatePresence = useMutation(api.presence.updatePresence);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn || !convexUser?._id) return;
 
+    const userId = convexUser._id;
+
+    // Ensure user is synced in Convex.
     syncUser();
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        handleVisible();
-      } else {
-        handleHidden();
-      }
+    const pushPresence = () => {
+      updatePresence({ userId }).catch(() => {
+        // Ignore transient errors; presence is best-effort.
+      });
     };
 
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    // Initial presence update.
+    pushPresence();
+
+    // Heartbeat every 30s.
+    const intervalId = setInterval(pushPresence, HEARTBEAT_MS);
+
+    const handleBeforeUnload = () => {
+      pushPresence();
+    };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      clearInterval(intervalId);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      if (offlineTimeoutRef.current) {
-        clearTimeout(offlineTimeoutRef.current);
-        offlineTimeoutRef.current = null;
-      }
     };
-  }, [isLoaded, isSignedIn, syncUser, handleVisible, handleHidden, handleBeforeUnload]);
+  }, [isLoaded, isSignedIn, convexUser?._id, syncUser, updatePresence]);
 }
+

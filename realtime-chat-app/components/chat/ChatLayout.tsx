@@ -1,37 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Sidebar } from "./Sidebar";
 import { ChatHeader } from "./ChatHeader";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 
-export type MockMessage = {
-  id: string;
-  content: string;
-  isSender: boolean;
-};
-
 export type ChatLayoutProps = {
-  messages?: MockMessage[];
   currentUser: { name: string; avatar?: string };
 };
 
-const PLACEHOLDER_MESSAGES: MockMessage[] = [];
-
-export function ChatLayout({
-  messages = PLACEHOLDER_MESSAGES,
-  currentUser,
-}: ChatLayoutProps) {
+export function ChatLayout({ currentUser }: ChatLayoutProps) {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
 
   const conversations = useQuery(api.conversations.getUserConversations);
+  const currentConvexUser = useQuery(api.users.getCurrentUser);
   const selectedConversation = selectedConversationId
     ? (conversations ?? []).find((c) => c._id === selectedConversationId)
     : null;
+
+  const messages = useQuery(
+    api.messages.getMessagesByConversation,
+    selectedConversation
+      ? { conversationId: selectedConversation._id }
+      : "skip"
+  );
+
+  const sendMessage = useMutation(api.messages.sendMessage);
 
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
@@ -44,6 +42,18 @@ export function ChatLayout({
 
   const showSidebarOnMobile = !selectedConversation || mobileView === "list";
   const showChatOnMobile = selectedConversation && mobileView === "chat";
+
+  const handleSend = async (body: string) => {
+    if (!selectedConversation) return;
+    try {
+      await sendMessage({
+        conversationId: selectedConversation._id,
+        body,
+      });
+    } catch (error) {
+      console.error("Failed to send message", error);
+    }
+  };
 
   return (
     <div className="flex h-full min-h-0 w-full overflow-hidden">
@@ -69,25 +79,18 @@ export function ChatLayout({
             <ChatHeader
               name={selectedConversation.otherUser.name}
               avatar={selectedConversation.otherUser.imageUrl}
-              isOnline={selectedConversation.otherUser.isOnline}
+              userId={selectedConversation.otherUser._id}
               onBack={handleBack}
               showBackButton={true}
             />
 
             <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto px-6 py-6">
-                <div className="flex flex-col gap-4">
-                  {messages.map((msg) => (
-                    <MessageBubble
-                      key={msg.id}
-                      content={msg.content}
-                      isSender={msg.isSender}
-                    />
-                  ))}
-                </div>
-              </div>
+              <MessageList
+                messages={messages ?? []}
+                currentUserId={currentConvexUser?._id ?? null}
+              />
 
-              <ChatInput />
+              <ChatInput onSend={handleSend} disabled={!selectedConversation} />
             </div>
           </>
         ) : (
@@ -104,3 +107,42 @@ export function ChatLayout({
     </div>
   );
 }
+
+type MessageListProps = {
+  messages: Array<{
+    _id: string;
+    content: string;
+    createdAt: number;
+    senderId: string;
+  }>;
+  currentUserId: string | null;
+};
+
+function MessageList({ messages, currentUserId }: MessageListProps) {
+  // Trigger a re-render every 60 seconds so relative timestamps stay fresh.
+  useEffect(() => {
+    const id = setInterval(() => {
+      // State update just to force re-render; value is unused.
+      setTick((t) => t + 1);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const [tick, setTick] = useState(0);
+
+  return (
+    <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex flex-col gap-4">
+        {messages.map((msg) => (
+          <MessageBubble
+            key={msg._id}
+            content={msg.content}
+            createdAt={msg.createdAt}
+            isSender={msg.senderId === currentUserId}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+

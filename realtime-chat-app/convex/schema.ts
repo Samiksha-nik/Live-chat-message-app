@@ -17,6 +17,11 @@ export default defineSchema({
     lastSeen: v.number(),
   }).index("by_clerk_id", ["clerkId"]),
 
+  presence: defineTable({
+    userId: v.id("users"),
+    lastSeen: v.number(),
+  }).index("by_user", ["userId"]),
+
   conversations: defineTable({
     isGroup: v.boolean(),
     name: v.optional(v.string()),

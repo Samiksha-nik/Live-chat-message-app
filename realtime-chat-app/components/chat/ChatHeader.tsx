@@ -1,12 +1,14 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ChatHeaderProps = {
   name: string;
   avatar?: string;
-  isOnline?: boolean;
+  userId?: string;
   onBack?: () => void;
   showBackButton?: boolean;
 };
@@ -14,10 +16,18 @@ export type ChatHeaderProps = {
 export function ChatHeader({
   name,
   avatar,
-  isOnline = true,
+  userId,
   onBack,
   showBackButton = false,
 }: ChatHeaderProps) {
+  const presence = useQuery(
+    api.presence.getUserPresence,
+    userId ? { userId } : "skip"
+  );
+
+  const isOnline =
+    presence != null && Date.now() - presence.lastSeen < 60_000;
+
   return (
     <header className="flex shrink-0 items-center gap-3 border-b border-border/60 bg-card/50 px-4 py-3">
       {showBackButton && onBack && (
@@ -50,7 +60,7 @@ export function ChatHeader({
       <div className="min-w-0 flex-1">
         <h2 className="truncate text-sm font-semibold">{name}</h2>
         <p className="text-xs text-muted-foreground">
-          {isOnline ? "Online" : "Offline"}
+          {isOnline ? "🟢 Online" : "⚪ Offline"}
         </p>
       </div>
     </header>
