@@ -19,7 +19,32 @@ export function ChatInput({
   currentUserId,
 }: ChatInputProps) {
   const updateTyping = useMutation(api.typing.updateTyping);
-  const lastTypingRef = useRef(0);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef(0);
+
+  const handleTyping = () => {
+    if (!currentUserId || disabled) return;
+
+    const now = Date.now();
+
+    // Send only if last sent more than 1500ms ago.
+    if (now - lastTypingSentRef.current > 1500) {
+      updateTyping({ userId: currentUserId }).catch(() => {
+        // Best-effort; ignore transient errors.
+      });
+      lastTypingSentRef.current = now;
+    }
+
+    // Clear previous timeout.
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Reset local typing state after 2 seconds of inactivity.
+    typingTimeoutRef.current = setTimeout(() => {
+      lastTypingSentRef.current = 0;
+    }, 2000);
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -29,20 +54,20 @@ export function ChatInput({
     if (value && onSend) {
       onSend(value);
       input.value = "";
+
+      // Clear typing state immediately after sending a message.
+      lastTypingSentRef.current = 0;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!currentUserId || disabled) return;
-
-    const now = Date.now();
-    // Throttle typing updates to avoid over-calling the mutation.
-    if (now - lastTypingRef.current < 500) return;
-    lastTypingRef.current = now;
-
-    updateTyping({ userId: currentUserId }).catch(() => {
-      // Best-effort; ignore transient errors.
-    });
+    // Let parent handle the actual message text if needed.
+    void e;
+    handleTyping();
   };
 
   return (
