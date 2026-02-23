@@ -1,18 +1,26 @@
 "use client";
 
+import { useRef } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Send } from "lucide-react";
 
 export type ChatInputProps = {
   placeholder?: string;
   onSend?: (message: string) => void;
   disabled?: boolean;
+  currentUserId?: string | null;
 };
 
 export function ChatInput({
   placeholder = "Type a message...",
   onSend,
   disabled = false,
+  currentUserId,
 }: ChatInputProps) {
+  const updateTyping = useMutation(api.typing.updateTyping);
+  const lastTypingRef = useRef(0);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -22,6 +30,19 @@ export function ChatInput({
       onSend(value);
       input.value = "";
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentUserId || disabled) return;
+
+    const now = Date.now();
+    // Throttle typing updates to avoid over-calling the mutation.
+    if (now - lastTypingRef.current < 500) return;
+    lastTypingRef.current = now;
+
+    updateTyping({ userId: currentUserId }).catch(() => {
+      // Best-effort; ignore transient errors.
+    });
   };
 
   return (
@@ -35,6 +56,7 @@ export function ChatInput({
           type="text"
           placeholder={placeholder}
           disabled={disabled}
+          onChange={handleChange}
           className="min-w-0 flex-1 bg-transparent py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none"
         />
         <button

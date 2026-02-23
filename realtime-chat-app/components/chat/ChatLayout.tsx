@@ -15,6 +15,7 @@ export type ChatLayoutProps = {
 export function ChatLayout({ currentUser }: ChatLayoutProps) {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [typingNow, setTypingNow] = useState(() => Date.now());
 
   const conversations = useQuery(api.conversations.getUserConversations);
   const currentConvexUser = useQuery(api.users.getCurrentUser);
@@ -31,6 +32,13 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
 
   const sendMessage = useMutation(api.messages.sendMessage);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTypingNow(Date.now());
+    }, 1_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
     setMobileView("chat");
@@ -42,6 +50,12 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
 
   const showSidebarOnMobile = !selectedConversation || mobileView === "list";
   const showChatOnMobile = selectedConversation && mobileView === "chat";
+
+  const otherUserTypingTimestamp =
+    selectedConversation?.otherUser.typing ?? undefined;
+  const isTyping =
+    otherUserTypingTimestamp != null &&
+    typingNow - otherUserTypingTimestamp < 2_000;
 
   const handleSend = async (body: string) => {
     if (!selectedConversation) return;
@@ -88,9 +102,18 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
               <MessageList
                 messages={messages ?? []}
                 currentUserId={currentConvexUser?._id ?? null}
+                typingLabel={
+                  isTyping
+                    ? `${selectedConversation.otherUser.name} is typing...`
+                    : null
+                }
               />
 
-              <ChatInput onSend={handleSend} disabled={!selectedConversation} />
+              <ChatInput
+                onSend={handleSend}
+                disabled={!selectedConversation}
+                currentUserId={currentConvexUser?._id ?? null}
+              />
             </div>
           </>
         ) : (
@@ -116,9 +139,10 @@ type MessageListProps = {
     senderId: string;
   }>;
   currentUserId: string | null;
+  typingLabel: string | null;
 };
 
-function MessageList({ messages, currentUserId }: MessageListProps) {
+function MessageList({ messages, currentUserId, typingLabel }: MessageListProps) {
   // Trigger a re-render every 60 seconds so relative timestamps stay fresh.
   useEffect(() => {
     const id = setInterval(() => {
@@ -132,6 +156,9 @@ function MessageList({ messages, currentUserId }: MessageListProps) {
 
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6">
+      {typingLabel && (
+        <p className="mb-2 text-xs text-muted-foreground">{typingLabel}</p>
+      )}
       <div className="flex flex-col gap-4">
         {messages.map((msg) => (
           <MessageBubble

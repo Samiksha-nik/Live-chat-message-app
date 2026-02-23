@@ -66,6 +66,7 @@ export const getUserConversations = query({
         email: string;
         imageUrl?: string;
         isOnline: boolean;
+        typing?: number;
       };
       lastMessageId?: string;
       createdAt: number;
@@ -94,6 +95,7 @@ export const getUserConversations = query({
           email: otherUser.email,
           imageUrl: otherUser.imageUrl,
           isOnline: otherUser.isOnline,
+          typing: otherUser.typing,
         },
         lastMessageId: conv.lastMessageId,
         createdAt: conv.createdAt ?? 0,

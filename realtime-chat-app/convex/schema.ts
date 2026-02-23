@@ -15,6 +15,7 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     isOnline: v.boolean(),
     lastSeen: v.number(),
+    typing: v.optional(v.number()),
   }).index("by_clerk_id", ["clerkId"]),
 
   presence: defineTable({
