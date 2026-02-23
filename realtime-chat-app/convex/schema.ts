@@ -42,13 +42,16 @@ export default defineSchema({
   messages: defineTable({
     conversationId: v.id("conversations"),
     senderId: v.id("users"),
+    receiverId: v.optional(v.id("users")),
     content: v.string(),
     createdAt: v.number(),
     deleted: v.boolean(),
     seenBy: v.array(v.id("users")),
+    isRead: v.optional(v.boolean()),
   })
-  .index("by_conversation_createdAt", ["conversationId", "createdAt"])
-  .index("by_sender", ["senderId"]),
+    .index("by_conversation_createdAt", ["conversationId", "createdAt"])
+    .index("by_sender", ["senderId"])
+    .index("by_receiver", ["receiverId"]),
 
   reactions: defineTable({
     messageId: v.id("messages"),

@@ -1,6 +1,8 @@
 "use client";
 
 import { MessageCircle, Search, Settings } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { ConversationItem } from "./ConversationItem";
 import { useChatSidebar } from "@/hooks/use-chat-sidebar";
 import { cn } from "@/lib/utils";
@@ -16,6 +18,11 @@ export function Sidebar({
   currentUser,
   onSelectConversation,
 }: SidebarProps) {
+  const currentConvexUser = useQuery(api.users.getCurrentUser);
+  const unreadCounts = useQuery(
+    api.messages.getUnreadCounts,
+    currentConvexUser?._id ? { userId: currentConvexUser._id } : "skip"
+  );
   const {
     items,
     searchQuery,
@@ -93,7 +100,11 @@ export function Sidebar({
                 name={item.name}
                 avatar={item.avatar}
                 lastMessage={item.lastMessage}
-                unread={item.unread}
+                unread={
+                  item.type === "conversation"
+                    ? unreadCounts?.[item.id as string] ?? 0
+                    : 0
+                }
                 isActive={selectedId === item.id}
                 onClick={() => handleItemClick(item)}
               />

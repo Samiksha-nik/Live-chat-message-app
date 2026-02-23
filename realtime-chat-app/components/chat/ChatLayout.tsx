@@ -31,6 +31,9 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
   );
 
   const sendMessage = useMutation(api.messages.sendMessage);
+  const markConversationAsRead = useMutation(
+    api.messages.markConversationAsRead
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -42,6 +45,15 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
     setMobileView("chat");
+
+    if (currentConvexUser?._id) {
+      markConversationAsRead({
+        conversationId,
+        userId: currentConvexUser._id,
+      }).catch(() => {
+        // Best-effort; ignore transient errors
+      });
+    }
   };
 
   const handleBack = () => {

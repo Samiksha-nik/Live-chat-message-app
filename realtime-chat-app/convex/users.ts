@@ -23,6 +23,7 @@ export const syncUser = mutation({
       imageUrl: typeof identity.picture === "string" ? identity.picture : undefined,
       isOnline: true,
       lastSeen: now,
+      typing: undefined,
     };
 
     if (existing) {
