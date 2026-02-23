@@ -89,11 +89,11 @@ export function Sidebar({
               <ConversationItem
                 key={item.type + item.id}
                 id={item.id}
+                userId={item.userId}
                 name={item.name}
                 avatar={item.avatar}
                 lastMessage={item.lastMessage}
                 unread={item.unread}
-                isOnline={item.isOnline}
                 isActive={selectedId === item.id}
                 onClick={() => handleItemClick(item)}
               />

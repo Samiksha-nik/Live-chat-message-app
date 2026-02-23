@@ -9,19 +9,19 @@ export type SidebarItem =
   | {
       type: "conversation";
       id: Id<"conversations">;
+      userId: Id<"users">;
       name: string;
       avatar?: string;
       lastMessage: string;
-      isOnline: boolean;
       unread?: number;
     }
   | {
       type: "user";
       id: Id<"users">;
+      userId: Id<"users">;
       name: string;
       avatar?: string;
       lastMessage: string;
-      isOnline: boolean;
     };
 
 export function useChatSidebar() {
@@ -47,10 +47,10 @@ export function useChatSidebar() {
       .map((c) => ({
         type: "conversation" as const,
         id: c._id,
+        userId: c.otherUser._id,
         name: c.otherUser.name,
         avatar: c.otherUser.imageUrl,
         lastMessage: "No messages yet",
-        isOnline: c.otherUser.isOnline,
         unread: 0,
       }));
 
@@ -59,10 +59,10 @@ export function useChatSidebar() {
       .map((u) => ({
         type: "user" as const,
         id: u._id,
+        userId: u._id,
         name: u.name,
         avatar: u.imageUrl,
         lastMessage: "Click to start chatting",
-        isOnline: u.isOnline,
       }));
 
     return [...convItems, ...userItems];

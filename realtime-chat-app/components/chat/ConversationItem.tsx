@@ -1,27 +1,48 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 
 export type ConversationItemProps = {
   id: string;
+  userId: string;
   name: string;
   avatar?: string;
   lastMessage: string;
   unread?: number;
-  isOnline?: boolean;
   isActive?: boolean;
   onClick?: () => void;
 };
 
 export function ConversationItem({
+  userId,
   name,
   avatar,
   lastMessage,
   unread = 0,
-  isOnline = false,
   isActive = false,
   onClick,
 }: ConversationItemProps) {
+  const presence = useQuery(
+    api.presence.getUserPresence,
+    userId ? { userId } : "skip"
+  );
+
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const isOnline =
+    presence != null && now - presence.lastSeen < 60_000;
+
   return (
     <button
       type="button"
@@ -40,12 +61,13 @@ export function ConversationItem({
             <span>{name.slice(0, 2).toUpperCase()}</span>
           )}
         </div>
-        {isOnline && (
-          <span
-            className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500"
-            aria-hidden
-          />
-        )}
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background",
+            isOnline ? "bg-green-500" : "bg-zinc-400 dark:bg-zinc-500"
+          )}
+          aria-hidden
+        />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -69,3 +91,4 @@ export function ConversationItem({
     </button>
   );
 }
+
