@@ -226,7 +226,7 @@ function MessageList({ messages, currentUserId, typingLabel }: MessageListProps)
           }}
           className="absolute bottom-20 right-6 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-lg shadow-black/20 transition hover:bg-primary/90"
         >
-          ↓ New messages
+          ↓ New Messages
         </button>
       )}
     </div>
