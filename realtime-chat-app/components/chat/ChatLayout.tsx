@@ -49,8 +49,8 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
 
     if (currentConvexUser?._id) {
       markConversationAsRead({
-        conversationId,
-        userId: currentConvexUser._id,
+        conversationId: conversationId as Id<"conversations">,
+        userId: currentConvexUser._id as Id<"users">,
       }).catch(() => {
         // Best-effort; ignore transient errors
       });
