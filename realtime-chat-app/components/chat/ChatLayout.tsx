@@ -8,7 +8,6 @@ import { Sidebar } from "./Sidebar";
 import { ChatHeader } from "./ChatHeader";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
-import { Id } from "@/convex/_generated/dataModel";
 
 export type ChatLayoutProps = {
   currentUser: { name: string; avatar?: string };
