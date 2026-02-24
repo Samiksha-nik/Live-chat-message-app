@@ -2,13 +2,14 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ChatHeaderProps = {
   name: string;
   avatar?: string;
-  userId?: string;
+  userId?: Id<"users">;
   onBack?: () => void;
   showBackButton?: boolean;
 };
