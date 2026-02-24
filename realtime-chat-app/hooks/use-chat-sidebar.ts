@@ -47,8 +47,8 @@ export function useChatSidebar() {
       .filter((c) => match(c.otherUser.name))
       .map((c) => ({
         type: "conversation" as const,
-        id: c._id,
-        userId: c.otherUser._id,
+        id: c._id as Id<"conversations">,
+        userId: c.otherUser._id as Id<"users">,
         name: c.otherUser.name,
         avatar: c.otherUser.imageUrl,
         lastMessage: c.lastMessage
@@ -63,8 +63,8 @@ export function useChatSidebar() {
       .filter((u) => !conversationUserIds.has(u._id) && match(u.name))
       .map((u) => ({
         type: "user" as const,
-        id: u._id,
-        userId: u._id,
+        id: u._id as Id<"users">,
+        userId: u._id as Id<"users">,
         name: u.name,
         avatar: u.imageUrl,
         lastMessage: "Click to start chatting",
