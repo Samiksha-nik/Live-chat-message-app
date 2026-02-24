@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
+import type { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 
 export type ConversationItemProps = {
   id: string;
-  userId: string;
+  userId: Id<"users">;
   name: string;
   avatar?: string;
   lastMessage: string;
@@ -25,10 +26,7 @@ export function ConversationItem({
   isActive = false,
   onClick,
 }: ConversationItemProps) {
-  const presence = useQuery(
-    api.presence.getUserPresence,
-    userId ? { userId } : "skip"
-  );
+  const presence = useQuery(api.presence.getUserPresence, { userId });
 
   const [now, setNow] = useState(() => Date.now());
 
