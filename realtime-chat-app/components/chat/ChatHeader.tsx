@@ -4,12 +4,11 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type ChatHeaderProps = {
   name: string;
   avatar?: string;
-  // Comes from Convex user _id; treat as string here and cast for Convex.
+  // Convex user _id comes in as a string; we cast when calling Convex.
   userId?: string;
   onBack?: () => void;
   showBackButton?: boolean;
@@ -24,7 +23,9 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   const presence = useQuery(
     api.presence.getUserPresence,
-    userId ? { userId: userId as Id<"users"> } : "skip"
+    userId
+      ? ({ userId: userId as Id<"users"> } as { userId: Id<"users"> })
+      : "skip"
   );
 
   const isOnline =
