@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Send } from "lucide-react";
+import { Id } from "@/convex/_generated/dataModel";
 
 export type ChatInputProps = {
   placeholder?: string;
@@ -29,7 +30,7 @@ export function ChatInput({
 
     // Send only if last sent more than 1500ms ago.
     if (now - lastTypingSentRef.current > 1500) {
-      updateTyping({ userId: currentUserId }).catch(() => {
+      updateTyping({ userId: currentUserId as Id<"users"> }).catch(() => {
         // Best-effort; ignore transient errors.
       });
       lastTypingSentRef.current = now;
