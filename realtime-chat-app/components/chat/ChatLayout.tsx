@@ -74,7 +74,7 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
     if (!selectedConversation) return;
     try {
       await sendMessage({
-        conversationId: selectedConversation._id,
+        conversationId: selectedConversation._id as Id<"conversations">,
         body,
       });
     } catch (error) {
