@@ -1,7 +1,8 @@
-"use client";
+ "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import type { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { Sidebar } from "./Sidebar";
 import { ChatHeader } from "./ChatHeader";
@@ -27,7 +28,7 @@ export function ChatLayout({ currentUser }: ChatLayoutProps) {
   const messages = useQuery(
     api.messages.getMessagesByConversation,
     selectedConversation
-      ? { conversationId: selectedConversation._id }
+      ? { conversationId: selectedConversation._id as Id<"conversations"> }
       : "skip"
   );
 
