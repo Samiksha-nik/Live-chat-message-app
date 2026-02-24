@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 export type ChatHeaderProps = {
   name: string;
   avatar?: string;
-  userId?: Id<"users">;
+  // Comes from Convex user _id; treat as string here and cast for Convex.
+  userId?: string;
   onBack?: () => void;
   showBackButton?: boolean;
 };
@@ -23,7 +24,7 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   const presence = useQuery(
     api.presence.getUserPresence,
-    userId ? { userId } : "skip"
+    userId ? { userId: userId as Id<"users"> } : "skip"
   );
 
   const isOnline =
